@@ -1,1 +1,47 @@
+on:
+  issues:
+    types: [opened]
 
+jobs:
+  first-job:
+    runs-on: ubuntu-latest
+        
+    steps:
+      - run: "true"
+      - name: Add a comment on the issue on success
+        uses: actions/github-script@v6
+        if: success()
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ &nbsp; We have executed the request by user **@${{github.event.issue.user.login}}** \n\n This issue will be locked to avoid new interactions
+              <sub>
+                Find details of the automation <a href="https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{github.run_id}}">here</a>.
+              </sub>
+              `
+            })
+            await github.rest.issues.lock({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            })
+      - name: Add a comment to notify of the automation failure
+        uses: actions/github-script@v6
+        if: failure()
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `⛔️ Operation has failed.
+              <sub>
+                Find details of the automation <a href="https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{github.run_id}}">here</a>.
+              </sub>
+              `
+            })
